@@ -1,0 +1,13 @@
+//
+//  API_KEY.xcconfig
+//  CWKTemplate24
+//
+//  Created by Daniil Lebedev on 15/06/2025.
+//
+
+// Configuration settings file format documentation can be found at:
+// https://help.apple.com/xcode/#/dev745c5c974
+//
+// API_KEY=f147e63c09f63823a6ba7cc94576d0dc // Sample md5
+
+API_KEY=f3bcf8925d849c8718f6d9bd5228607c
