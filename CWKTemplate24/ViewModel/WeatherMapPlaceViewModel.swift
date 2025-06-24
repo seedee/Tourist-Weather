@@ -99,7 +99,43 @@ class WeatherMapPlaceViewModel: ObservableObject {
     // MARK:  function to get tourist places safely for a  map region and store for use in showing them on a map
 
     func setAnnotations() async throws{
-
-        // write code for this function with suitable comments
+        guard let coords = self.coords else {
+            print("Tried to set annotations with no coordinates available")
+            return
+        }
+        
+        let searchRequest = MKLocalSearch.Request()
+        searchRequest.naturalLanguageQuery = "tourist attractions points of interest"
+        searchRequest.region = MKCoordinateRegion(
+            center: coords,
+            span: MKCoordinateSpan(latitudeDelta: 0.1, longitudeDelta: 0.1)
+        )
+        let search = MKLocalSearch(request: searchRequest)
+        
+        do {
+            let response = try await search.start()
+            
+            // Convert map items to annotation model
+            let places = response.mapItems.prefix(5).compactMap { mapItem -> PlaceAnnotationDataModel? in
+                guard let name = mapItem.name else { return nil }
+                
+                return PlaceAnnotationDataModel(
+                    name: name,
+                    coords: mapItem.placemark.coordinate,
+                    category: mapItem.pointOfInterestCategory?.rawValue ?? "Tourist Attraction",
+                    url: mapItem.url?.absoluteString,
+                    info: mapItem.phoneNumber
+                )
+            }
+            
+            // Update annotations on main thread
+            await MainActor.run {
+                self.annotations = places
+            }
+            
+        } catch {
+            print("Error searching for tourist places: \(error)")
+            throw error
+        }
     }
 }

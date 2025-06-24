@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import SwiftData
 
 @main
 struct CWKTemplate24App: App {
@@ -16,7 +17,7 @@ struct CWKTemplate24App: App {
         WindowGroup {
             NavBarView()
                 .environmentObject(weatherMapPlaceViewModel)
-
+                .modelContainer(for: LocationModel.self)
         // MARK:  Create a database to store locations using SwiftData
             
         }

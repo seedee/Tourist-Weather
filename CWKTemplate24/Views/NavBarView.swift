@@ -6,6 +6,8 @@
 //
 
 import SwiftUI
+import SwiftData
+import MapKit
 
 struct NavBarView: View {
 
@@ -20,9 +22,12 @@ struct NavBarView: View {
      */
 
     @EnvironmentObject var weatherMapPlaceViewModel: WeatherMapPlaceViewModel
+    @Environment(\.modelContext) private var modelContext
+    @Query private var locations: [LocationModel]
     @State private var tempLocation = ""
     @State private var isLoading = false
     @State private var showAlert = false
+    @State private var alertMessage = ""
     @FocusState private var focus: Bool
     
     
@@ -52,16 +57,7 @@ struct NavBarView: View {
                         .textFieldStyle(RoundedBorderTextFieldStyle())
                         .focused($focus)
                         .onSubmit {
-                            weatherMapPlaceViewModel.newLocation = tempLocation
-                            Task {
-                                do {
-                                    try await weatherMapPlaceViewModel.getCoordinatesForCity()
-                                    _ = try await weatherMapPlaceViewModel.fetchWeatherData(lat: weatherMapPlaceViewModel.coords?.latitude ?? 51.5033768, lon: weatherMapPlaceViewModel.coords?.longitude ?? -0.0795183) // Fallback to London
-                                } catch {
-                                    print("Error: \(error)")
-                                    isLoading = false
-                                }
-                            }
+                            handleNewLocation()
                         }
                 }
                 .shadow(color: .blue, radius: 10)
@@ -88,10 +84,86 @@ struct NavBarView: View {
             } // TabView
             .onAppear {
                 // MARK:  Write code to manage what happens when this view appears
+                //weatherMapPlaceViewModel.newLocation = "London"
+            }
+        }
+        .alert("Location Update", isPresented: $showAlert) {
+            Button("OK", role: .cancel) { }
+        } message: {
+            Text(alertMessage)
+        }
+    }
+    
+    private func handleNewLocation() {
+        guard !tempLocation.isEmpty else { return }
+        isLoading = true
+        weatherMapPlaceViewModel.newLocation = tempLocation
+        
+        Task {
+            do {
+                if let existingLocation = locations.first(where: { $0.name.lowercased() == tempLocation.lowercased() }) {
+                    // Use existing coordinates
+                    weatherMapPlaceViewModel.coords = existingLocation.coords
+                    weatherMapPlaceViewModel.region = MKCoordinateRegion(
+                        center: existingLocation.coords,
+                        span: MKCoordinateSpan(latitudeDelta: 0.1, longitudeDelta: 0.1)
+                    )
+                    alertMessage = "Location '\(tempLocation)' found in database. Using stored coordinates."
+                    showAlert = true
+                    
+                    _ = try await weatherMapPlaceViewModel.fetchWeatherData(
+                        lat: existingLocation.lat,
+                        lon: existingLocation.lon
+                    )
+                } else {
+                    // Get new coordinates
+                    try await weatherMapPlaceViewModel.getCoordinatesForCity()
+                    
+                    if let coords = weatherMapPlaceViewModel.coords {
+                        // Save new location to database
+                        let newLocation = LocationModel(
+                            name: tempLocation,
+                            lat: coords.latitude,
+                            lon: coords.longitude
+                        )
+                        modelContext.insert(newLocation)
+                        alertMessage = "New location '\(tempLocation)' added to database with coordinates (lat: \(String(format: "%.4f", coords.latitude)), lon: \(String(format: "%.4f", coords.longitude)))"
+                        showAlert = true
+                        
+                        // Fetch weather data
+                        _ = try await weatherMapPlaceViewModel.fetchWeatherData(
+                            lat: coords.latitude,
+                            lon: coords.longitude
+                        )
+                    }
+                }
+                
+                // Fetch tourist places
+                try await weatherMapPlaceViewModel.setAnnotations()
+                
+            } catch {
+                alertMessage = "Error: Location '\(tempLocation)' not found. Please try again."
+                showAlert = true
+                weatherMapPlaceViewModel.newLocation = weatherMapPlaceViewModel.newLocation // Revert to previous
             }
             
-        }//VStack - Outer
-        // add frame modifier and other modifiers to manage this view
+            isLoading = false
+            tempLocation = ""
+            focus = false
+        }
+    }
+    
+    private func handleNewLocation2() {
+        weatherMapPlaceViewModel.newLocation = tempLocation
+        Task {
+            do {
+                try await weatherMapPlaceViewModel.getCoordinatesForCity()
+                _ = try await weatherMapPlaceViewModel.fetchWeatherData(lat: weatherMapPlaceViewModel.coords?.latitude ?? 51.5033768, lon: weatherMapPlaceViewModel.coords?.longitude ?? -0.0795183) // Fallback to London
+            } catch {
+                print("Error: \(error)")
+                isLoading = false
+            }
+        }
     }
 }
 
