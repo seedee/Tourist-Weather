@@ -45,6 +45,7 @@ struct DailyWeatherView: View {
 
                         }
                         .background(.gray.opacity(0.2))
+                        .cornerRadius(15)
                         .frame(maxWidth: .infinity)
                     }
                 }

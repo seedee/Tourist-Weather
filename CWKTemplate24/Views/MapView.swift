@@ -23,20 +23,13 @@ struct MapView: View {
     var body: some View {
         VStack(spacing: 0) {
             Map(position: $mapCameraPosition) {
-                ForEach(weatherMapPlaceViewModel.annotations) { annotation in
-                    Annotation(annotation.name, coordinate: annotation.coords) {
-                        VStack {
-                            Image(systemName: "mappin.circle.fill")
-                                .font(.title)
-                                .foregroundColor(.red)
-                            Text(annotation.name)
-                                .font(.caption)
-                                .padding(4)
-                                .background(Color.white.opacity(0.8))
-                                .cornerRadius(4)
-                        }
+                ForEach(weatherMapPlaceViewModel.annotations) { place in
+                    Annotation(place.name, coordinate: place.coords) {
+                        Image(systemName: "mappin.circle.fill")
+                            .font(.title)
+                            .foregroundColor(.red)
                         .onTapGesture {
-                            selectedPlace = annotation
+                            selectedPlace = place
                             showingPlaceDetails = true
                         }
                     }
@@ -68,8 +61,8 @@ struct MapView: View {
                                 .foregroundColor(.gray)
                         }
                         .padding()
-                        .background(Color.gray.opacity(0.1))
-                        .cornerRadius(10)
+                        .background(.gray.opacity(0.2))
+                        .cornerRadius(15)
                         .onTapGesture {
                             selectedPlace = place
                             showingPlaceDetails = true

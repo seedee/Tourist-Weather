@@ -31,29 +31,35 @@ struct VisitedPlacesView: View {
             } else {
                 List {
                     ForEach(locations, id: \.id) { location in
-                        VStack(alignment: .leading, spacing: 8) {
+                        VStack(alignment: .leading) {
                             Text(location.name)
                                 .font(.headline)
                             HStack {
                                 Text("Coordinates:")
                                     .font(.caption)
-                                    .foregroundColor(.secondary)
-                                Text(String(format: "(%.4f, %.4f)", location.lat, location.lon))
+                                Text(String(format: "%.5f, %.5f", location.lat, location.lon))
                                     .font(.caption)
                                     .foregroundColor(.blue)
                             }
-                            Text("Added: \(location.timestamp, style: .date)")
-                                .font(.caption2)
-                                .foregroundColor(.gray)
+                            Text("Added \(location.timestamp, style: .date)")
+                                .font(.caption)
                         }
-                        .padding(.vertical, 4)
+                        .padding()
+                        .listRowBackground(
+                            RoundedRectangle(cornerRadius: 15)
+                                .fill(.gray.opacity(0.2))
+                                .padding(.horizontal, 16)
+                                .padding(.vertical, 8)
+                        )
+                        .listRowSeparator(.hidden)
                     }
                     .onDelete(perform: deleteLocations)
                 }
                 .listStyle(PlainListStyle())
+                .scrollContentBackground(.hidden)
             }
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .background(Image("sky")
             .resizable()
             .scaledToFill()

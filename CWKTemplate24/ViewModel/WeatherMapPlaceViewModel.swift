@@ -50,7 +50,7 @@ class WeatherMapPlaceViewModel: ObservableObject {
         }
         print("Found coordinates (lat: \(location.latitude), lon: \(location.longitude))")
         DispatchQueue.main.async {
-            self.region = MKCoordinateRegion(center: location, span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01))
+            self.region = MKCoordinateRegion(center: location, span: MKCoordinateSpan(latitudeDelta: 0.1, longitudeDelta: 0.1))
             self.coords = location
         }
     }
