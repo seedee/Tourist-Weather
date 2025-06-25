@@ -15,6 +15,7 @@ class WeatherMapPlaceViewModel: ObservableObject {
     @Published var weatherDataModel: WeatherDataModel?
     @Published var airDataModel: AirDataModel?
     @Published var newLocation = "London"
+    @Published var previousLocation = "London"
     @Published var region = MKCoordinateRegion()
     @Published var coords: CLLocationCoordinate2D?
     @Published var annotations: [PlaceAnnotationDataModel] = []
@@ -42,16 +43,31 @@ class WeatherMapPlaceViewModel: ObservableObject {
 
     func getCoordinatesForCity() async throws {
         let geocoder = CLGeocoder()
-        let placemarks = try await geocoder.geocodeAddressString(newLocation)
         
-        guard let location = placemarks.first?.location?.coordinate else { // Ensure at least one placemark returned and extract its coords
-            print("No location found for \"\(newLocation)\"")
-            return
-        }
-        print("Found coordinates (lat: \(location.latitude), lon: \(location.longitude))")
-        DispatchQueue.main.async {
-            self.region = MKCoordinateRegion(center: location, span: MKCoordinateSpan(latitudeDelta: 0.1, longitudeDelta: 0.1))
-            self.coords = location
+        do {
+            let placemarks = try await geocoder.geocodeAddressString(newLocation)
+            
+            guard let location = placemarks.first?.location?.coordinate else {
+                print("No location found for \"\(newLocation)\"")
+                // Clear coords to signal failure
+                await MainActor.run {
+                    self.coords = nil
+                }
+                throw NetworkError.invalidURL
+            }
+            
+            print("Found coordinates (lat: \(location.latitude), lon: \(location.longitude))")
+            
+            await MainActor.run {
+                self.region = MKCoordinateRegion(center: location, span: MKCoordinateSpan(latitudeDelta: 0.1, longitudeDelta: 0.1))
+                self.coords = location
+            }
+        } catch {
+            print("Geocoding error for \"\(newLocation)\": \(error)")
+            await MainActor.run {
+                self.coords = nil
+            }
+            throw error
         }
     }
     

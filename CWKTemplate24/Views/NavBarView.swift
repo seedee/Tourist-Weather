@@ -117,6 +117,13 @@ struct NavBarView: View {
     private func handleNewLocation() {
         guard !tempLocation.isEmpty else { return }
         isLoading = true
+        
+        // Store current location as previous before attempting change
+        let previousLocation = weatherMapPlaceViewModel.newLocation
+        let previousCoords = weatherMapPlaceViewModel.coords
+        let previousRegion = weatherMapPlaceViewModel.region
+
+        // Temporarily set the new location
         weatherMapPlaceViewModel.newLocation = tempLocation
         
         Task {
@@ -135,54 +142,51 @@ struct NavBarView: View {
                         lat: existingLocation.lat,
                         lon: existingLocation.lon
                     )
+                    // Update previous location on success
+                    weatherMapPlaceViewModel.previousLocation = tempLocation
                 } else {
                     // Get new coordinates
                     try await weatherMapPlaceViewModel.getCoordinatesForCity()
                     
-                    if let coords = weatherMapPlaceViewModel.coords {
-                        // Save new location to database
-                        let newLocation = LocationModel(
-                            name: tempLocation,
-                            lat: coords.latitude,
-                            lon: coords.longitude
-                        )
-                        modelContext.insert(newLocation)
-                        alertMessage = "\(tempLocation) added to database with (lat: \(String(format: "%.4f", coords.latitude)), lon: \(String(format: "%.4f", coords.longitude)))"
-                        showAlert = true
-                        
-                        // Fetch weather data
-                        _ = try await weatherMapPlaceViewModel.fetchWeatherData(
-                            lat: coords.latitude,
-                            lon: coords.longitude
-                        )
+                    // Check if coordinates were actually found
+                    guard let coords = weatherMapPlaceViewModel.coords else {
+                        throw WeatherMapPlaceViewModel.NetworkError.invalidURL
                     }
+                    
+                    // Save new location to database
+                    let newLocation = LocationModel(
+                        name: tempLocation,
+                        lat: coords.latitude,
+                        lon: coords.longitude
+                    )
+                    modelContext.insert(newLocation)
+                    alertMessage = "\(tempLocation) added to database with (lat: \(String(format: "%.4f", coords.latitude)), lon: \(String(format: "%.4f", coords.longitude)))"
+                    showAlert = true
+                    
+                    // Fetch weather data
+                    _ = try await weatherMapPlaceViewModel.fetchWeatherData(
+                        lat: coords.latitude,
+                        lon: coords.longitude
+                    )
+                    
+                    // Update previous location on success
+                    weatherMapPlaceViewModel.previousLocation = tempLocation
                 }
                 
                 // Fetch tourist places
                 try await weatherMapPlaceViewModel.setAnnotations()
-                
             } catch {
-                alertMessage = "Error: Location '\(tempLocation)' not found. Please try again."
+                weatherMapPlaceViewModel.newLocation = previousLocation
+                weatherMapPlaceViewModel.previousLocation = previousLocation
+                weatherMapPlaceViewModel.coords = previousCoords
+                weatherMapPlaceViewModel.region = previousRegion
+                alertMessage = "Error: \(tempLocation) not found. Please try again."
                 showAlert = true
-                weatherMapPlaceViewModel.newLocation = weatherMapPlaceViewModel.newLocation // Revert to previous
             }
             
             isLoading = false
             tempLocation = ""
             focus = false
-        }
-    }
-    
-    private func handleNewLocation2() {
-        weatherMapPlaceViewModel.newLocation = tempLocation
-        Task {
-            do {
-                try await weatherMapPlaceViewModel.getCoordinatesForCity()
-                _ = try await weatherMapPlaceViewModel.fetchWeatherData(lat: weatherMapPlaceViewModel.coords?.latitude ?? 51.5033768, lon: weatherMapPlaceViewModel.coords?.longitude ?? -0.0795183) // Fallback to London
-            } catch {
-                print("Error: \(error)")
-                isLoading = false
-            }
         }
     }
 }
