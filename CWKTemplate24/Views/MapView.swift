@@ -38,12 +38,11 @@ struct MapView: View {
             .mapStyle(.standard)
             .frame(height: 350)
             
-            // Tourist places list
             ScrollView {
-                VStack(alignment: .leading, spacing: 15) {
+                VStack(alignment: .leading, spacing: 16) {
                     ForEach(weatherMapPlaceViewModel.annotations) { place in
                         HStack {
-                            VStack(alignment: .leading, spacing: 5) {
+                            VStack(alignment: .leading, spacing: 8) {
                                 Text(place.name)
                                     .font(.headline)
                                 Text(place.category)
@@ -92,6 +91,7 @@ struct MapView: View {
                 print("Error loading annotations: \(error)")
             }
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .background(Image("sky")
             .resizable()
             .scaledToFill()

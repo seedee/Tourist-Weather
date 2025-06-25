@@ -37,8 +37,24 @@ struct NavBarView: View {
         // Customize TabView appearance
         let appearance = UITabBarAppearance()
         appearance.configureWithOpaqueBackground()
-        appearance.backgroundColor = .white
+        
+        appearance.backgroundColor = UIColor.clear
+        appearance.backgroundImage = UIImage(named: "BG")
+        appearance.backgroundImageContentMode = .top
+        
+        appearance.stackedLayoutAppearance.normal.titleTextAttributes = [
+            .foregroundColor: UIColor.black
+        ]
+        appearance.stackedLayoutAppearance.selected.titleTextAttributes = [
+            .foregroundColor: UIColor.white
+        ]
+        appearance.stackedLayoutAppearance.normal.iconColor = UIColor.black
+        appearance.stackedLayoutAppearance.selected.iconColor = UIColor.white
+        
         UITabBar.appearance().standardAppearance = appearance
+        UITabBar.appearance().scrollEdgeAppearance = appearance
+        UITabBar.appearance().isTranslucent = false
+        UITabBar.appearance().barTintColor = .white
     }
     
     var body: some View {
@@ -84,10 +100,14 @@ struct NavBarView: View {
             } // TabView
             .onAppear {
                 // MARK:  Write code to manage what happens when this view appears
-                //weatherMapPlaceViewModel.newLocation = "London"
+                // Reapply tab bar appearance to ensure it persists
+                if let appearance = UITabBar.appearance().standardAppearance.copy() as? UITabBarAppearance {
+                    UITabBar.appearance().standardAppearance = appearance
+                    UITabBar.appearance().scrollEdgeAppearance = appearance
+                }
             }
         }
-        .alert("Location Update", isPresented: $showAlert) {
+        .alert("Location Updated", isPresented: $showAlert) {
             Button("OK", role: .cancel) { }
         } message: {
             Text(alertMessage)
@@ -108,7 +128,7 @@ struct NavBarView: View {
                         center: existingLocation.coords,
                         span: MKCoordinateSpan(latitudeDelta: 0.1, longitudeDelta: 0.1)
                     )
-                    alertMessage = "Location '\(tempLocation)' found in database. Using stored coordinates."
+                    alertMessage = "\(tempLocation) found in database, using stored coordinates."
                     showAlert = true
                     
                     _ = try await weatherMapPlaceViewModel.fetchWeatherData(
@@ -127,7 +147,7 @@ struct NavBarView: View {
                             lon: coords.longitude
                         )
                         modelContext.insert(newLocation)
-                        alertMessage = "New location '\(tempLocation)' added to database with coordinates (lat: \(String(format: "%.4f", coords.latitude)), lon: \(String(format: "%.4f", coords.longitude)))"
+                        alertMessage = "\(tempLocation) added to database with (lat: \(String(format: "%.4f", coords.latitude)), lon: \(String(format: "%.4f", coords.longitude)))"
                         showAlert = true
                         
                         // Fetch weather data
